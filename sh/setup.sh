@@ -123,7 +123,7 @@ elif [[ -n "$ZSH_VERSION" ]]; then
             BUFFER="$res"
             CURSOR=${#BUFFER}
             juun_work "add" "$res"
-            zle accept-line
+            zle get-line
         else
             BUFFER="$res"
             CURSOR=${#BUFFER}
