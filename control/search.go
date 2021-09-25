@@ -61,8 +61,14 @@ func main() {
 					if len(result) > 0 {
 						lastQuery = currentQuery
 						currentIndex = 0
-						r := result[0]
-						rl.SetPrompt(fmt.Sprintf("%s \033[95mϵ\033[0m %d/%d \033[31m»\033[0m ", strings.Replace(r.Line, "\n", "\\n", -1), currentIndex%len(result), len(result)))
+						r := ""
+						maxLineLength := 80
+						if len(result[0].Line) >= maxLineLength {
+							r = result[0].Line[0:maxLineLength]
+						} else {
+							r = result[0].Line[0:len(result[0].Line)]
+						}
+						rl.SetPrompt(fmt.Sprintf("%s \033[95mϵ\033[0m %d/%d \033[31m»\033[0m ", strings.Replace(r, "\n", "\\n", -1), currentIndex%len(result), len(result)))
 						lastQuery = currentQuery
 					} else {
 						rl.SetPrompt(fmt.Sprintf("%s \033[31m»\033[0m ", currentQuery))
