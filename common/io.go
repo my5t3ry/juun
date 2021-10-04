@@ -22,8 +22,13 @@ type HistoryLine struct {
 	Id        int
 }
 
-func (l *HistoryLine) IndexableFields() map[string]string {
-	return map[string]string{"line": l.Line}
+func (l *HistoryLine) IndexableFields() map[string][]string {
+	out := map[string][]string{}
+
+	out["line"] = []string{l.Line}
+
+	return out
+
 }
 
 func (l *HistoryLine) Featurize() *FeatureSet {

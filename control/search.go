@@ -55,7 +55,6 @@ func main() {
 				rl.SetPrompt(fmt.Sprintf("%s \033[95mϵ\033[0m %d/%d \033[31m»\033[0m ", strings.Replace(r.Line, "\n", "\\n", -1), currentIndex%len(result), len(result)))
 			} else {
 				encoded := QueryService("search", os.Args[1], currentQuery)
-
 				err := json.Unmarshal([]byte(encoded), &result)
 				if err == nil {
 					if len(result) > 0 {

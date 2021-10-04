@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	iq "github.com/jackdoe/go-query"
-	"github.com/jackdoe/go-query/util/analyzer"
-	"github.com/jackdoe/go-query/util/index"
-	"github.com/jackdoe/go-query/util/tokenize"
-	. "github.com/jackdoe/juun/common"
+	iq "github.com/rekki/go-query"
+	analyzer "github.com/rekki/go-query-analyze"
+	index "github.com/rekki/go-query-index"
+
+	. "../common"
 	. "github.com/jackdoe/juun/vw"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,24 +35,12 @@ type History struct {
 }
 
 func NewHistory() *History {
-	indexTokenizer := []tokenize.Tokenizer{
-		tokenize.NewWhitespace(),
-		tokenize.NewLeftEdge(1), // left edge ngram indexing for prefix matches
-		tokenize.NewUnique(),
-	}
 
-	searchTokenizer := []tokenize.Tokenizer{
-		tokenize.NewWhitespace(),
-		tokenize.NewUnique(),
-	}
-
-	autocomplete := analyzer.NewAnalyzer(
-		index.DefaultNormalizer,
-		searchTokenizer,
-		indexTokenizer,
-	)
 	m := index.NewMemOnlyIndex(map[string]*analyzer.Analyzer{
-		"line": autocomplete,
+		"name":         index.AutocompleteAnalyzer,
+		"name_fuzzy":   index.FuzzyAnalyzer,
+		"name_soundex": index.SoundexAnalyzer,
+		"country":      index.IDAnalyzer,
 	})
 
 	return &History{
