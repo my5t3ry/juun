@@ -49,14 +49,16 @@ func NewHistory() *History {
 	})
 
 	return &History{
-		Lines: make(map[string]*HistoryLine),
-		idx:   m,
+		Lines:        make(map[string]*HistoryLine),
+		idx:          m,
+		globalCursor: -1,
 	}
 }
 
 func (h *History) SelfReindex() {
 	log.Infof("starting reindexing")
 	h.SortedLines = h.flatMapLinesSorted()
+	h.globalCursor = -1
 	log.Infof("reindexing done, %d items", len(h.Lines))
 }
 
@@ -122,7 +124,6 @@ func (h *History) add(line string, env map[string]string) {
 		h.like(h.Lines[v.Uuid], env)
 	}
 
-	h.SelfReindex()
 }
 
 func (h *History) gotoend() {
@@ -140,18 +141,22 @@ func (h *History) down() string {
 func (h *History) move(goUP bool) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
+	result := ""
+	if len(h.SortedLines) == 0 {
+		return result
+	}
+
+	if h.globalCursor == -1 {
+		result = h.SortedLines[0].Line
+	}
 
 	if !goUP && h.globalCursor > 0 {
 		h.globalCursor -= 1
 	} else if goUP && h.globalCursor < len(h.Lines) {
 		h.globalCursor += 1
 	}
-
-	if len(h.Lines) == 0 || !goUP && h.globalCursor == 0 {
-		return ""
-	}
-
-	return h.SortedLines[h.globalCursor].Line
+	result = h.SortedLines[h.globalCursor].Line
+	return result
 }
 func (h *History) getLastLines() []*HistoryLine {
 	h.lock.Lock()
