@@ -259,8 +259,9 @@ func (h *History) search(text string, pid int, env map[string]string) []*History
 			out = append(out, line)
 		}
 	}
-	if len(out) > 20 {
-		out = out[:20]
+	cfg := NewConfig()
+	if len(out) > cfg.SerchResults {
+		out = out[:cfg.SerchResults]
 	}
 	return out
 }

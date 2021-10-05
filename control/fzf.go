@@ -5,6 +5,7 @@ import (
 	"fmt"
 	. "github.com/jackdoe/juun/common"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -15,14 +16,16 @@ func main() {
 		encoded := QueryService("search", os.Args[1], qry)
 		err := json.Unmarshal([]byte(encoded), &result)
 		if err == nil && len(result) > 0 {
-			r := ""
+			var r []string
 			maxLineLength := 80
-			if len(result[0].Line) >= maxLineLength {
-				r = result[0].Line[0:maxLineLength]
-			} else {
-				r = result[0].Line[0:len(result[0].Line)]
+			for _, curResult := range result {
+				if len(curResult.Line) >= maxLineLength {
+					r = append(r, curResult.Line[0:maxLineLength])
+				} else {
+					r = append(r, curResult.Line[0:len(curResult.Line)])
+				}
 			}
-			fmt.Printf("%s", r)
+			fmt.Printf("%s", strings.Join(r, "\n"))
 		}
 	}
 	os.Exit(0)
