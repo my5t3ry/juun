@@ -20,6 +20,7 @@ type HistoryLine struct {
 	TimeStamp int64
 	Count     uint32
 	Id        int
+	Uuid      string
 }
 
 func (l *HistoryLine) IndexableFields() map[string][]string {

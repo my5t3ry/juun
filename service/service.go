@@ -52,19 +52,23 @@ func oneLine(history *History, c net.Conn) {
 		if len(ctrl.Payload) > 0 {
 			line := strings.Trim(ctrl.Payload, "\n")
 			if len(line) > 0 {
-				history.add(line, ctrl.Pid, ctrl.Env)
+				history.add(line, ctrl.Env)
 			}
-			history.gotoend(ctrl.Pid)
+			history.gotoend()
 		}
+
 	case "end":
-		history.gotoend(ctrl.Pid)
+		history.gotoend()
+	case "reindex":
+		history.SelfReindex()
+	case "save":
 		history.Save()
 	case "delete":
-		history.deletePID(ctrl.Pid)
+		log.Infof("delete command is deprecated")
 	case "search":
 		line := strings.Replace(ctrl.Payload, "\n", "", -1)
 		if len(line) > 0 {
-			lines := history.search(line, ctrl.Pid, ctrl.Env)
+			lines := history.search(line, ctrl.Env)
 			j, err := json.Marshal(lines)
 			if err != nil {
 				log.WithError(err).Printf("failed to encode")
@@ -85,9 +89,9 @@ func oneLine(history *History, c net.Conn) {
 		}
 
 	case "up":
-		out = history.up(ctrl.Pid, ctrl.Payload)
+		out = history.up(ctrl.Payload)
 	case "down":
-		out = history.down(ctrl.Pid, ctrl.Payload)
+		out = history.down(ctrl.Payload)
 	}
 
 	_, _ = c.Write([]byte(out))

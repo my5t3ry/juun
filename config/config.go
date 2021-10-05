@@ -19,7 +19,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		AutoSaveInteralSeconds: 300,
+		AutoSaveInteralSeconds: 68,
 		SearchResults:          30,
 		ResultLineLength:       100,
 		EnableVowpalWabbit:     true,

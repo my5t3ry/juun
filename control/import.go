@@ -24,5 +24,6 @@ func main() {
 	if scanner.Err() != nil {
 		log.Printf("err: %s", scanner.Err())
 	}
-	QueryService("delete", pid, "delete")
+	QueryService("reindex", pid, "")
+	QueryService("save", pid, "save")
 }

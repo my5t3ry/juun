@@ -106,12 +106,12 @@ elif [[ -n "$ZSH_VERSION" ]]; then
 
   zshaddhistory() {
     juun_work add "$1"
+    juun_work reindex reindex
   }
 
   juun_precmd() {
     juun_work end end
   }
-
 
   juun_search_start() {
     zle -I

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"io/ioutil"
 	"math"
 	"path"
@@ -30,12 +31,12 @@ func toDocuments(in []*HistoryLine) []index.Document {
 }
 
 type History struct {
-	Lines       []*HistoryLine
-	lookup      map[string]int
-	PerTerminal map[int]*Terminal
-	idx         *index.MemOnlyIndex
-	lock        sync.Mutex
-	vw          *Bandit
+	Lines        map[string]*HistoryLine
+	SortedLines  []*HistoryLine
+	idx          *index.MemOnlyIndex
+	lock         sync.Mutex
+	vw           *Bandit
+	globalCursor int
 }
 
 func NewHistory() *History {
@@ -48,130 +49,118 @@ func NewHistory() *History {
 	})
 
 	return &History{
-		Lines:       []*HistoryLine{}, // ordered list of commands
-		lookup:      map[string]int{},
-		idx:         m,
-		PerTerminal: map[int]*Terminal{},
+		Lines: make(map[string]*HistoryLine), // ordered list of commands
+		idx:   m,
 	}
 }
 
-func (h *History) selfReindex() {
+func (h *History) SelfReindex() {
 	log.Infof("starting reindexing")
 
-	sort.Slice(h.Lines, func(i, j int) bool {
-		return h.Lines[i].TimeStamp > h.Lines[j].TimeStamp
-	})
-	//h.Lines = reverseLines(h.Lines)
-	h.idx.Index(toDocuments(h.Lines)...)
-	h.lookup = map[string]int{}
-	for id, v := range h.Lines {
-		h.lookup[v.Line] = id
-	}
+	h.SortedLines = h.flatMapLinesSorted()
+
 	log.Infof("reindexing done, %d items", len(h.Lines))
 
 }
 
-func (h *History) deletePID(pid int) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
+func (h *History) filterLine(f func(string) bool) []*HistoryLine {
 
-	delete(h.PerTerminal, pid)
+	lines := make([]*HistoryLine, 0, len(h.Lines))
+
+	for _, value := range h.Lines {
+		lines = append(lines, value)
+	}
+
+	filtered := make([]*HistoryLine, 0)
+	for _, v := range lines {
+		if f(v.Line) {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered
 }
 
-func (h *History) add(line string, pid int, env map[string]string) {
+func (h *History) flatMapLinesSorted() []*HistoryLine {
+
+	lines := make([]*HistoryLine, 0, len(h.Lines))
+
+	for _, value := range h.Lines {
+		lines = append(lines, value)
+	}
+
+	sort.Slice(lines, func(i, j int) bool {
+		return lines[i].TimeStamp > lines[j].TimeStamp
+	})
+
+	return lines
+}
+
+func (h *History) add(line string, env map[string]string) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	t := h.getTerminal(pid)
-
 	now := time.Now().UnixNano()
-	id, ok := h.lookup[line]
-	if ok {
-		v := h.Lines[id]
+
+	filtered := h.filterLine(func(word string) bool {
+		return strings.Contains(word, line)
+	})
+	v := &HistoryLine{}
+	if len(filtered) > 0 {
+		v = filtered[0]
 		v.Count++
 		v.TimeStamp = now
+		h.idx.Index(index.Document(v))
 	} else {
-		id = len(h.Lines)
-
-		v := &HistoryLine{
+		v = &HistoryLine{
 			Line:      line,
 			TimeStamp: now,
 			Count:     1,
-			Id:        id,
+			Id:        len(h.Lines),
+			Uuid:      uuid.NewString(),
 		}
 
-		h.Lines = append(h.Lines, v)
-		h.lookup[line] = v.Id
+		h.Lines[v.Uuid] = v
 		h.idx.Index(index.Document(v))
 	}
-	h.selfReindex()
 
 	if h.vw != nil {
-		h.vw.Click(id)
-		h.like(h.Lines[id], env)
+		h.vw.Click(v.Id)
+		h.like(h.Lines[v.Uuid], env)
 	}
-
-	t.CurrentBufferBeforeMove = ""
-	t.add(id)
-
+	h.SelfReindex()
 }
 
-func (h *History) gotoend(pid int) {
+func (h *History) gotoend() {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	t, ok := h.PerTerminal[pid]
-	if !ok {
-		return
-	}
-	t.end()
 }
-func (h *History) up(pid int, buf string) string {
-	return h.move(true, pid, buf)
+func (h *History) up(buf string) string {
+	return h.move(true, buf)
 }
 
-func (h *History) down(pid int, buf string) string {
-	return h.move(false, pid, buf)
+func (h *History) down(buf string) string {
+	return h.move(false, buf)
 }
 
-func (h *History) getTerminal(pid int) *Terminal {
-	t, ok := h.PerTerminal[pid]
-	if !ok {
-		id := len(h.Lines)
-		t = NewTerminal(id)
-		h.PerTerminal[pid] = t
-
-	}
-	return t
+func (h *History) getTerminal() *Terminal {
+	return nil
 }
-func (h *History) move(goUP bool, pid int, buf string) string {
+func (h *History) move(goUP bool, buf string) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	t := h.getTerminal(pid)
-
-	var can bool
-	var id int
-
-	if goUP && t.isAtEnd() {
-		t.CurrentBufferBeforeMove = buf
+	if !goUP && h.globalCursor > 0 {
+		h.globalCursor -= 1
+	} else if goUP && h.globalCursor < len(h.Lines) {
+		h.globalCursor += 1
 	}
 
-	if goUP {
-		id, _ = t.up()
-	} else {
-		id, can = t.down()
-
-		if !can {
-			return t.CurrentBufferBeforeMove
-		}
-	}
-
-	if len(h.Lines) == 0 {
+	if len(h.Lines) == 0 || !goUP && h.globalCursor == 0 {
 		return ""
 	}
 
-	return h.Lines[id].Line
+	return h.SortedLines[h.globalCursor].Line
 }
 func (h *History) getLastLines() []*HistoryLine {
 	h.lock.Lock()
@@ -182,25 +171,8 @@ func (h *History) getLastLines() []*HistoryLine {
 	}
 
 	cfg := GetConfig()
-	terminalLines := []int{}
 
-	for _, t := range h.PerTerminal {
-		terminalLines = t.Commands
-	}
-
-	lines := make([]*HistoryLine, cfg.SearchResults)
-	copy(lines, h.Lines[:cfg.SearchResults])
-	for curLine := range terminalLines {
-		if h.Lines[curLine] != nil {
-			lines = append(lines, h.Lines[curLine])
-		}
-	}
-
-	sort.Slice(lines, func(i, j int) bool {
-		return lines[i].TimeStamp > lines[j].TimeStamp
-	})
-
-	return lines
+	return h.SortedLines[:cfg.SearchResults]
 }
 
 func reverseLines(input []*HistoryLine) []*HistoryLine {
@@ -211,6 +183,7 @@ func reverseLines(input []*HistoryLine) []*HistoryLine {
 }
 
 type scored struct {
+	uuid          string
 	id            int
 	score         float32
 	tfidf         float32
@@ -233,7 +206,7 @@ func (s ByScore) Less(i, j int) bool {
 
 const scoreOnTerminal = float32(10)
 
-func (h *History) search(text string, pid int, env map[string]string) []*HistoryLine {
+func (h *History) search(text string, env map[string]string) []*HistoryLine {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -244,7 +217,6 @@ func (h *History) search(text string, pid int, env map[string]string) []*History
 	query := iq.And(h.idx.Terms("line", text)...)
 
 	score := []scored{}
-	terminal, hasTerminal := h.PerTerminal[pid]
 	now := time.Now().Unix()
 
 	h.idx.Foreach(query, func(did int32, tfidf float32, doc index.Document) {
@@ -254,15 +226,9 @@ func (h *History) search(text string, pid int, env map[string]string) []*History
 
 		countScore := float32(math.Sqrt(float64(line.Count)))
 		terminalScore := float32(0)
-		if hasTerminal {
-			_, hasCommandInHistory := terminal.CommandsSet[line.Id]
-			if hasCommandInHistory {
-				terminalScore = scoreOnTerminal
-			}
-		}
 
-		total := tfidf + (5 * timeScore) + terminalScore + countScore
-		score = append(score, scored{id: line.Id, score: total, tfidf: tfidf, timeScore: timeScore, terminalScore: terminalScore, countScore: countScore})
+		total := (3 * tfidf) + (timeScore) + 0 + countScore
+		score = append(score, scored{uuid: line.Uuid, id: line.Id, score: total, tfidf: tfidf, timeScore: timeScore, terminalScore: terminalScore, countScore: countScore})
 
 	})
 
@@ -279,7 +245,7 @@ func (h *History) search(text string, pid int, env map[string]string) []*History
 		vwi := []*Item{}
 		for i := 0; i < topN; i++ {
 			s := score[i]
-			line := h.Lines[s.id]
+			line := h.Lines[s.uuid]
 
 			f := line.Featurize()
 			f.Add(ctx)
@@ -302,7 +268,7 @@ func (h *History) search(text string, pid int, env map[string]string) []*History
 	out := []*HistoryLine{}
 	if len(score) > 0 {
 		for _, s := range score {
-			line := h.Lines[s.id]
+			line := h.Lines[s.uuid]
 			out = append(out, line)
 		}
 	}
@@ -360,5 +326,7 @@ func (h *History) Load() {
 		log.Warnf("err: %s", err.Error())
 	}
 
-	h.selfReindex()
+	h.SelfReindex()
+
+	h.idx.Index(toDocuments(h.SortedLines)...)
 }

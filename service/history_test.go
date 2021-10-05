@@ -54,12 +54,12 @@ func must(t *testing.T, a, b string) {
 
 func TestHistoryChange(t *testing.T) {
 	h := NewHistory()
-	h.add("first-terminal-ps 1", 1, nil)                            // global id 0
-	h.add("ps 2", 2, nil)                                           // global id 1
-	h.add("ps 3", 2, nil)                                           // global id 1
-	must(t, h.up(2, "incomplete-before-up"), "ps 3")                // global id 1, cursor 2
-	must(t, h.up(2, "incomplete-before-up"), "ps 2")                // global id 1, cursor 0
-	must(t, h.up(2, "incomplete-before-up"), "first-terminal-ps 1") // global id 1, cursor 0
+	h.add("first-terminal-ps 1", 1, nil)                            // global uuid 0
+	h.add("ps 2", 2, nil)                                           // global uuid 1
+	h.add("ps 3", 2, nil)                                           // global uuid 1
+	must(t, h.up(2, "incomplete-before-up"), "ps 3")                // global uuid 1, cursor 2
+	must(t, h.up(2, "incomplete-before-up"), "ps 2")                // global uuid 1, cursor 0
+	must(t, h.up(2, "incomplete-before-up"), "first-terminal-ps 1") // global uuid 1, cursor 0
 }
 
 func TestGlobalHistory2(t *testing.T) {
