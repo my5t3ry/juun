@@ -1,13 +1,15 @@
-# JUUN - zsh history with some vowpal learning :)
+# juun(-fzf) - make your machine learn to be better tool, inshallah. 
+### the best known approach known to $(whoami). gracefully build with some $BUFFER > bash > go > vowpal > go > bash > $BUFFER foo by [jackdoe](https://github.com/jackdoe/).
+#### + smacked on fzf integration and compdef support
+
 
 ![logo](https://github.com/jackdoe/juun/raw/master/logo-small.png)
 
-
 ## learn damnit
 
-![video](https://github.com/jackdoe/juun/raw/master/learn.gif)
+[comment]: <> (![video]&#40;https://github.com/jackdoe/juun/raw/master/learn.gif&#41;)
 
-in this example the search learns that by 'd' I mean `git diff`, not `dmesg`
+[comment]: <> (in this example the search learns that by 'd' I mean `git diff`, not `dmesg`)
 
 ## [Here be dragons](https://en.wikipedia.org/wiki/Here_be_dragons)
 
@@ -34,13 +36,17 @@ supported:
 curl -L https://raw.githubusercontent.com/my5t3ry/juun-fzf/master/download-and-install.sh | bash
 ```
 
-### with homebrew:
+[comment]: <> (### with homebrew:)
 
-```
-brew tap jackdoe/tap
-brew install juun
-```
-(then you need to follow the instructions)
+[comment]: <> (```)
+
+[comment]: <> (brew tap jackdoe/tap)
+
+[comment]: <> (brew install juun)
+
+[comment]: <> (```)
+
+[comment]: <> (&#40;then you need to follow the instructions&#41;)
 
 
 ### from source
@@ -50,16 +56,20 @@ requires golang
 go get github.com/sirupsen/logrus
 go get github.com/chzyer/readline
 go get github.com/sevlyar/go-daemon
+go get github.com/rekki/go-query
+go get github.com/rekki/go-query-index
+go get github.com/jackdoe/juun/vw
 
-git clone https://github.com/jackdoe/juun
-cd juun && make
+git clone https://github.com/my5t3ry/juun-fzf
+cd juun-fzf && make
 ```
 
 ```
 make install # this will add 'source juun/dist/setup.sh' to .bash_profile and .zshrc
 ```
 
-this will hook up, down and ctrl+r to use juun for up/down history and search
+this will hook up, down and ctrl+r to use juun for fzf history widget. press ctrl+r to update query results for changed $BUFFER
+if compdef is available "compdef _juun_completions -first-" is added to support ctx aware tab completion.
 it also hooks to preexec()
 
 setup.sh will always try to start `juun.service` which listens on $HOME/.juun.sock

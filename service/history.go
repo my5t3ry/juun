@@ -99,7 +99,7 @@ func (h *History) add(line string, env map[string]string) {
 	v := &HistoryLine{}
 
 	filtered := h.filterLine(func(word string) bool {
-		return strings.Contains(word, line)
+		return word == line
 	})
 	if len(filtered) > 0 {
 		v = filtered[0]
