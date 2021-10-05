@@ -36,7 +36,7 @@ func GetConfig() *Config {
 		if err != nil {
 			config = NewConfig()
 		}
-		log.Infof("config[%s]: %s", configFile, PrettyPrint(config))
+		log.Debugf("config[%s]: %s", configFile, PrettyPrint(config))
 	} else {
 		log.Warnf("missing config file %s, using default: %s", configFile, PrettyPrint(config))
 	}
