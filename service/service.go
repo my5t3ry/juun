@@ -157,9 +157,9 @@ func main() {
 
 	config := GetConfig()
 
-	if config.AutoSaveInteralSeconds < 30 {
+	if config.AutoSaveIntervalSeconds < 30 {
 		log.Warnf("autosave interval is too short, limiting it to 30 seconds")
-		config.AutoSaveInteralSeconds = 30
+		config.AutoSaveIntervalSeconds = 30
 	}
 	level, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
@@ -205,11 +205,11 @@ func main() {
 		cleanup()
 	}()
 
-	if config.AutoSaveInteralSeconds > 0 {
+	if config.AutoSaveIntervalSeconds > 0 {
 		go func() {
 			for {
 				save()
-				time.Sleep(time.Duration(config.AutoSaveInteralSeconds) * time.Second)
+				time.Sleep(time.Duration(config.AutoSaveIntervalSeconds) * time.Second)
 			}
 		}()
 	}

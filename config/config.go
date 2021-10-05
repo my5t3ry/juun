@@ -10,20 +10,20 @@ import (
 )
 
 type Config struct {
-	AutoSaveInteralSeconds uint
-	SearchResults          int
-	ResultLineLength       int
-	EnableVowpalWabbit     bool
-	LogLevel               string
+	AutoSaveIntervalSeconds uint
+	SearchResults           int
+	ResultLineLength        int
+	EnableVowpalWabbit      bool
+	LogLevel                string
 }
 
 func NewConfig() *Config {
 	return &Config{
-		AutoSaveInteralSeconds: 68,
-		SearchResults:          30,
-		ResultLineLength:       100,
-		EnableVowpalWabbit:     true,
-		LogLevel:               "info",
+		AutoSaveIntervalSeconds: 120,
+		SearchResults:           30,
+		ResultLineLength:        100,
+		EnableVowpalWabbit:      true,
+		LogLevel:                "info",
 	}
 }
 
