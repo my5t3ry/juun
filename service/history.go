@@ -162,6 +162,25 @@ func (h *History) move(goUP bool, pid int, buf string) string {
 
 	return h.Lines[id].Line
 }
+func (h *History) getLastLines() []*HistoryLine {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	if len(h.Lines) == 0 {
+		return nil
+	}
+	cfg := NewConfig()
+
+	lines := h.Lines[len(h.Lines)-cfg.SerchResults : len(h.Lines)]
+
+	return reverseLines(lines)
+}
+func reverseLines(input []*HistoryLine) []*HistoryLine {
+	if len(input) == 0 {
+		return input
+	}
+	return append(reverseLines(input[1:]), input[0])
+}
 
 type scored struct {
 	id            int

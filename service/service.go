@@ -69,6 +69,19 @@ func oneLine(history *History, c net.Conn) {
 			}
 			out = string(j)
 		}
+	case "list":
+		cfg := NewConfig()
+		lines := history.getLastLines()[:cfg.SerchResults]
+		if lines != nil {
+			j, err := json.Marshal(lines)
+			if err != nil {
+				log.WithError(err).Printf("failed to encode")
+			}
+			out = string(j)
+		} else {
+			out = ""
+		}
+
 	case "up":
 		out = history.up(ctrl.Pid, ctrl.Payload)
 	case "down":
@@ -132,13 +145,13 @@ func main() {
 		Umask:       027,
 	}
 
-	d, err := cntxt.Reborn()
-	if err != nil {
-		log.Fatal("Unable to run: ", err)
-	}
-	if d != nil {
-		return
-	}
+	//_, err := cntxt.Reborn()
+	//if err != nil {
+	//	log.Fatal("Unable to run: ", err)
+	//}
+	//if d != nil {
+	//	return
+	//}
 	log.Infof("---------------------")
 	log.Infof("loading %s, listening to: %s, model: %s", histfile, socketPath, modelFile)
 	dat, err := ioutil.ReadFile(histfile)
