@@ -1,5 +1,5 @@
 # juun(-fzf) - make your machine learn to be better tool, inshallah. 
-### the best known approach known to $(whoami). gracefully build with some $BUFFER > bash > go > vowpal > go > bash > $BUFFER foo by [jackdoe](https://github.com/jackdoe/).
+### the best known approach known to $(whoami). gracefully & ctx aware build with some $BUFFER > bash > go > vowpal > go > bash > $BUFFER foo by [jackdoe](https://github.com/jackdoe/).
 #### + smacked on fzf integration and compdef support
 
 
