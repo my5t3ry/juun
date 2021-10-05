@@ -31,7 +31,7 @@ supported:
 * freebsd amd64 [compiled, but not tested]
 
 ```
-curl -L https://raw.githubusercontent.com/jackdoe/juun/master/download-and-install.sh | bash
+curl -L https://raw.githubusercontent.com/my5t3ry/juun-fzf/master/download-and-install.sh | bash
 ```
 
 ### with homebrew:

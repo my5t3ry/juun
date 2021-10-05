@@ -63,6 +63,14 @@ post_install() {
     echo
     echo "done"
     echo
+    echo "importing history"
+    RESULT=$(HISTTIMEFORMAT= history | ~/.juun.dist/juun.import)
+    echo $RESULT
+    echo "restarting juun.service from '$SHELL' after import"
+    echo
+    $SHELL -c "export JUUN_DONT_BIND_BASH=1 && source $ROOT/setup.sh && juun_restart"
+    echo
+    echo "done"
 }
 
 who=$(which_shell)
