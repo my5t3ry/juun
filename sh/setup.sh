@@ -108,9 +108,10 @@ elif [[ -n "$ZSH_VERSION" ]]; then
     juun_work add "$1"
   }
 
-  precmd() {
+  juun_precmd() {
     juun_work end end
   }
+
 
   juun_search_start() {
     zle -I
@@ -152,13 +153,21 @@ elif [[ -n "$ZSH_VERSION" ]]; then
   zle -N juun_down
   zle -N juun_search_start
 
+  bindkey -r "^[[A"
+  bindkey -r "^[OA"
   bindkey "^[[A" juun_up
+  bindkey "^[OA" juun_up
+  bindkey -r "^[OB"
+  bindkey -r "^[[B"
+  bindkey "^[OB" juun_down
   bindkey "^[[B" juun_down
   bindkey "^p" juun_up
   bindkey "^n" juun_down
-  bindkey "^R" juun_search_start
+
   if [ -x "$(command -v fzf)" ]; then
     source $ROOT/juun.fzf.sh
+  else
+    bindkey "^R" juun_search_start
   fi
 
   juun_start

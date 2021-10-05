@@ -8,6 +8,8 @@ juunfzf() {
   if [ -n "$selected" ]; then
     BUFFER=$selected
   fi
+  juun_work add "$selected"
+  juun_work end end
   zle reset-prompt
   return $ret
 }

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"path"
 	"sort"
 	"strings"
 	"sync"
@@ -104,6 +107,7 @@ func (h *History) add(line string, pid int, env map[string]string) {
 
 	t.CurrentBufferBeforeMove = ""
 	t.add(id)
+
 }
 
 func (h *History) gotoend(pid int) {
@@ -163,19 +167,34 @@ func (h *History) move(goUP bool, pid int, buf string) string {
 
 	return h.Lines[id].Line
 }
-func (h *History) getLastLines() []*HistoryLine {
+func (h *History) getLastLines(pid int) []*HistoryLine {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
 	if len(h.Lines) == 0 {
 		return nil
 	}
+	t := h.getTerminal(pid)
 	cfg := GetConfig()
+	terminalLines := []int{}
+	if len(t.Commands) > cfg.SearchResults {
+		terminalLines = t.Commands[len(t.Commands)-cfg.SearchResults : len(t.Commands)]
+	} else {
+		terminalLines = t.Commands
+	}
+	lines := make([]*HistoryLine, len(h.Lines))
+	copy(lines, h.Lines)
+	for curLine := range terminalLines {
+		lines = append(lines, h.Lines[curLine])
+	}
+	sort.Slice(lines, func(i, j int) bool {
+		return lines[i].TimeStamp < lines[j].TimeStamp
+	})
 
-	lines := h.Lines[len(h.Lines)-cfg.SearchResults : len(h.Lines)]
-
-	return reverseLines(lines)
+	result := lines[len(lines)-cfg.SearchResults : len(lines)]
+	return reverseLines(result)
 }
+
 func reverseLines(input []*HistoryLine) []*HistoryLine {
 	if len(input) == 0 {
 		return input
@@ -296,4 +315,42 @@ func (h *History) like(line *HistoryLine, env map[string]string) {
 	f.Add(ctx)
 	f.AddNamespaces(NewNamespace("i_score", NewFeature(fmt.Sprintf("terminalScore=%d", int(scoreOnTerminal)), 0)))
 	h.vw.SendReceive(fmt.Sprintf("1 10 %s", f.ToVW())) // add weight of 10 on the clicked one
+}
+
+func (h *History) Save() {
+	histfile := path.Join(GetHome(), ".juun.json")
+
+	h.lock.Lock()
+	d1, err := json.Marshal(h)
+	h.lock.Unlock()
+	if err == nil {
+		SafeSave(histfile, func(tmp string) error {
+			return ioutil.WriteFile(tmp, d1, 0600)
+		})
+	} else {
+		log.Warnf("error marshalling: %s", err.Error())
+	}
+
+	if h.vw != nil {
+		h.vw.Save()
+	}
+}
+
+func (h *History) Load() {
+	histfile := path.Join(GetHome(), ".juun.json")
+	log.Infof("---------------------")
+	log.Infof("loading %s", histfile)
+
+	dat, err := ioutil.ReadFile(histfile)
+	if err == nil {
+		err = json.Unmarshal(dat, h)
+		if err != nil {
+			log.Warnf("err: %s", err.Error())
+			h = NewHistory()
+		}
+	} else {
+		log.Warnf("err: %s", err.Error())
+	}
+
+	h.selfReindex()
 }

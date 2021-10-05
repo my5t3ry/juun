@@ -49,17 +49,18 @@ func oneLine(history *History, c net.Conn) {
 	log.Infof("datalen: %d %#v", dataLen, ctrl)
 	switch ctrl.Command {
 	case "add":
-		line := strings.Trim(ctrl.Payload, "\n")
-		if len(line) > 0 {
-			history.add(line, ctrl.Pid, ctrl.Env)
+		if len(ctrl.Payload) > 0 {
+			line := strings.Trim(ctrl.Payload, "\n")
+			if len(line) > 0 {
+				history.add(line, ctrl.Pid, ctrl.Env)
+			}
+			history.gotoend(ctrl.Pid)
 		}
-
 	case "end":
 		history.gotoend(ctrl.Pid)
-
+		history.Save()
 	case "delete":
 		history.deletePID(ctrl.Pid)
-
 	case "search":
 		line := strings.Replace(ctrl.Payload, "\n", "", -1)
 		if len(line) > 0 {
@@ -72,7 +73,7 @@ func oneLine(history *History, c net.Conn) {
 		}
 	case "list":
 		cfg := GetConfig()
-		lines := history.getLastLines()[:cfg.SearchResults]
+		lines := history.getLastLines(ctrl.Pid)[:cfg.SearchResults]
 		if lines != nil {
 			j, err := json.Marshal(lines)
 			if err != nil {
@@ -121,10 +122,8 @@ func isRunning(pidFile string) bool {
 
 func main() {
 	home := GetHome()
-	histfile := path.Join(home, ".juun.json")
 	socketPath := path.Join(home, ".juun.sock")
 	pidFile := path.Join(home, ".juun.pid")
-
 	modelFile := path.Join(home, ".juun.vw")
 	if isRunning(pidFile) {
 		os.Exit(0)
@@ -141,7 +140,7 @@ func main() {
 		Umask:       027,
 	}
 
-	//_, err := cntxt.Reborn()
+	//d, err := cntxt.Reborn()
 	//if err != nil {
 	//	log.Fatal("Unable to run: ", err)
 	//}
@@ -149,19 +148,8 @@ func main() {
 	//	return
 	//}
 	log.Infof("---------------------")
-	log.Infof("loading %s, listening to: %s, model: %s", histfile, socketPath, modelFile)
-	dat, err := ioutil.ReadFile(histfile)
-	if err == nil {
-		err = json.Unmarshal(dat, history)
-		if err != nil {
-			log.Warnf("err: %s", err.Error())
-			history = NewHistory()
-		}
-	} else {
-		log.Warnf("err: %s", err.Error())
-	}
-
-	history.selfReindex()
+	log.Infof("listening to: %s, model: %s", socketPath, modelFile)
+	history.Load()
 
 	config := GetConfig()
 
@@ -191,20 +179,8 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	save := func() {
-		history.lock.Lock()
-		d1, err := json.Marshal(history)
-		history.lock.Unlock()
-		if err == nil {
-			SafeSave(histfile, func(tmp string) error {
-				return ioutil.WriteFile(tmp, d1, 0600)
-			})
-		} else {
-			log.Warnf("error marshalling: %s", err.Error())
-		}
+		history.Save()
 
-		if vw != nil {
-			vw.Save()
-		}
 	}
 
 	cleanup := func() {
