@@ -57,11 +57,16 @@ func NewHistory() *History {
 
 func (h *History) selfReindex() {
 	log.Infof("starting reindexing")
+
+	sort.Slice(h.Lines, func(i, j int) bool {
+		return h.Lines[i].TimeStamp > h.Lines[j].TimeStamp
+	})
+	//h.Lines = reverseLines(h.Lines)
+	h.idx.Index(toDocuments(h.Lines)...)
 	h.lookup = map[string]int{}
 	for id, v := range h.Lines {
 		h.lookup[v.Line] = id
 	}
-	h.idx.Index(toDocuments(h.Lines)...)
 	log.Infof("reindexing done, %d items", len(h.Lines))
 
 }
@@ -99,6 +104,7 @@ func (h *History) add(line string, pid int, env map[string]string) {
 		h.lookup[line] = v.Id
 		h.idx.Index(index.Document(v))
 	}
+	h.selfReindex()
 
 	if h.vw != nil {
 		h.vw.Click(id)
@@ -167,32 +173,34 @@ func (h *History) move(goUP bool, pid int, buf string) string {
 
 	return h.Lines[id].Line
 }
-func (h *History) getLastLines(pid int) []*HistoryLine {
+func (h *History) getLastLines() []*HistoryLine {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
 	if len(h.Lines) == 0 {
 		return nil
 	}
-	t := h.getTerminal(pid)
+
 	cfg := GetConfig()
 	terminalLines := []int{}
-	if len(t.Commands) > cfg.SearchResults {
-		terminalLines = t.Commands[len(t.Commands)-cfg.SearchResults : len(t.Commands)]
-	} else {
+
+	for _, t := range h.PerTerminal {
 		terminalLines = t.Commands
 	}
-	lines := make([]*HistoryLine, len(h.Lines))
-	copy(lines, h.Lines)
+
+	lines := make([]*HistoryLine, cfg.SearchResults)
+	copy(lines, h.Lines[:cfg.SearchResults])
 	for curLine := range terminalLines {
-		lines = append(lines, h.Lines[curLine])
+		if h.Lines[curLine] != nil {
+			lines = append(lines, h.Lines[curLine])
+		}
 	}
+
 	sort.Slice(lines, func(i, j int) bool {
-		return lines[i].TimeStamp < lines[j].TimeStamp
+		return lines[i].TimeStamp > lines[j].TimeStamp
 	})
 
-	result := lines[len(lines)-cfg.SearchResults : len(lines)]
-	return reverseLines(result)
+	return lines
 }
 
 func reverseLines(input []*HistoryLine) []*HistoryLine {

@@ -71,7 +71,17 @@ func SafeSave(fn string, cb func(temp string) error) {
 		}
 	}
 }
-
+func Unique(slice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }

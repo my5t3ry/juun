@@ -36,7 +36,7 @@ func main() {
 				r = append(r, curResult.Line[0:len(curResult.Line)])
 			}
 		}
-		fmt.Printf("%s", strings.Join(r, "\n"))
+		fmt.Printf("%s", strings.Join(Unique(r), "\n"))
 	}
 	os.Exit(0)
 }

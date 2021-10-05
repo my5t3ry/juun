@@ -73,7 +73,7 @@ func oneLine(history *History, c net.Conn) {
 		}
 	case "list":
 		cfg := GetConfig()
-		lines := history.getLastLines(ctrl.Pid)[:cfg.SearchResults]
+		lines := history.getLastLines()[:cfg.SearchResults]
 		if lines != nil {
 			j, err := json.Marshal(lines)
 			if err != nil {
@@ -140,13 +140,13 @@ func main() {
 		Umask:       027,
 	}
 
-	d, err := cntxt.Reborn()
-	if err != nil {
-		log.Fatal("Unable to run: ", err)
-	}
-	if d != nil {
-		return
-	}
+	//d, err := cntxt.Reborn()
+	//if err != nil {
+	//	log.Fatal("Unable to run: ", err)
+	//}
+	//if d != nil {
+	//	return
+	//}
 	log.Infof("---------------------")
 	log.Infof("listening to: %s, model: %s", socketPath, modelFile)
 	history.Load()
@@ -180,7 +180,6 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	save := func() {
 		history.Save()
-
 	}
 
 	cleanup := func() {
