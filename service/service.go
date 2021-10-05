@@ -140,13 +140,13 @@ func main() {
 		Umask:       027,
 	}
 
-	//d, err := cntxt.Reborn()
-	//if err != nil {
-	//	log.Fatal("Unable to run: ", err)
-	//}
-	//if d != nil {
-	//	return
-	//}
+	d, err := cntxt.Reborn()
+	if err != nil {
+		log.Fatal("Unable to run: ", err)
+	}
+	if d != nil {
+		return
+	}
 	log.Infof("---------------------")
 	log.Infof("listening to: %s, model: %s", socketPath, modelFile)
 	history.Load()
