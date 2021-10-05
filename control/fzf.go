@@ -3,15 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/jackdoe/juun/common"
 	"os"
 	"strings"
+
+	. "../common"
+	. "../config"
 )
 
 func main() {
 	result := []*HistoryLine{}
-
+	cfg := GetConfig()
 	encoded := ""
+
 	if len(os.Args) == 3 {
 		qry := os.Args[2]
 		if len(qry) == 0 {
@@ -26,10 +29,9 @@ func main() {
 	err := json.Unmarshal([]byte(encoded), &result)
 	if err == nil && len(result) > 0 {
 		var r []string
-		maxLineLength := 80
 		for _, curResult := range result {
-			if len(curResult.Line) >= maxLineLength {
-				r = append(r, curResult.Line[0:maxLineLength])
+			if len(curResult.Line) >= cfg.ResultLineLength {
+				r = append(r, curResult.Line[0:cfg.ResultLineLength])
 			} else {
 				r = append(r, curResult.Line[0:len(curResult.Line)])
 			}

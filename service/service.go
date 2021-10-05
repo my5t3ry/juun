@@ -14,7 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/jackdoe/juun/common"
+	. "../common"
+	. "../config"
 	. "github.com/jackdoe/juun/vw"
 	"github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
@@ -70,8 +71,8 @@ func oneLine(history *History, c net.Conn) {
 			out = string(j)
 		}
 	case "list":
-		cfg := NewConfig()
-		lines := history.getLastLines()[:cfg.SerchResults]
+		cfg := GetConfig()
+		lines := history.getLastLines()[:cfg.SearchResults]
 		if lines != nil {
 			j, err := json.Marshal(lines)
 			if err != nil {
@@ -91,11 +92,6 @@ func oneLine(history *History, c net.Conn) {
 	_, _ = c.Write([]byte(out))
 
 	c.Close()
-}
-
-func prettyPrint(i interface{}) string {
-	s, _ := json.MarshalIndent(i, "", "\t")
-	return string(s)
 }
 
 func listen(history *History, ln net.Listener) {
@@ -128,7 +124,7 @@ func main() {
 	histfile := path.Join(home, ".juun.json")
 	socketPath := path.Join(home, ".juun.sock")
 	pidFile := path.Join(home, ".juun.pid")
-	configFile := path.Join(home, ".juun.config")
+
 	modelFile := path.Join(home, ".juun.vw")
 	if isRunning(pidFile) {
 		os.Exit(0)
@@ -167,17 +163,7 @@ func main() {
 
 	history.selfReindex()
 
-	config := NewConfig()
-	dat, err = ioutil.ReadFile(configFile)
-	if err == nil {
-		err = json.Unmarshal(dat, config)
-		if err != nil {
-			config = NewConfig()
-		}
-		log.Infof("config[%s]: %s", configFile, prettyPrint(config))
-	} else {
-		log.Warnf("missing config file %s, using default: %s", configFile, prettyPrint(config))
-	}
+	config := GetConfig()
 
 	if config.AutoSaveInteralSeconds < 30 {
 		log.Warnf("autosave interval is too short, limiting it to 30 seconds")

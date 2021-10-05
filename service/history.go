@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
+	. "../common"
+	. "../config"
+
+	. "github.com/jackdoe/juun/vw"
 	iq "github.com/rekki/go-query"
 	analyzer "github.com/rekki/go-query-analyze"
 	index "github.com/rekki/go-query-index"
-
-	. "../common"
-	. "github.com/jackdoe/juun/vw"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -169,9 +170,9 @@ func (h *History) getLastLines() []*HistoryLine {
 	if len(h.Lines) == 0 {
 		return nil
 	}
-	cfg := NewConfig()
+	cfg := GetConfig()
 
-	lines := h.Lines[len(h.Lines)-cfg.SerchResults : len(h.Lines)]
+	lines := h.Lines[len(h.Lines)-cfg.SearchResults : len(h.Lines)]
 
 	return reverseLines(lines)
 }
@@ -278,9 +279,9 @@ func (h *History) search(text string, pid int, env map[string]string) []*History
 			out = append(out, line)
 		}
 	}
-	cfg := NewConfig()
-	if len(out) > cfg.SerchResults {
-		out = out[:cfg.SerchResults]
+	cfg := GetConfig()
+	if len(out) > cfg.SearchResults {
+		out = out[:cfg.SearchResults]
 	}
 	return out
 }

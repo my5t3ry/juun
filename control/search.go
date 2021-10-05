@@ -6,16 +6,18 @@ import (
 	"os"
 	"strings"
 
+	. "../common"
+	. "../config"
 	"github.com/chzyer/readline"
-	. "github.com/jackdoe/juun/common"
 )
 
 func main() {
 	result := []*HistoryLine{}
 	lastQuery := ""
 	currentIndex := 0
-
+	userCfg := GetConfig()
 	forceInterrupted := false
+
 	cfg := &readline.Config{
 		Prompt:            " \033[31m»\033[0m ",
 		HistorySearchFold: false,
@@ -61,9 +63,8 @@ func main() {
 						lastQuery = currentQuery
 						currentIndex = 0
 						r := ""
-						maxLineLength := 80
-						if len(result[0].Line) >= maxLineLength {
-							r = result[0].Line[0:maxLineLength]
+						if len(result[0].Line) >= userCfg.ResultLineLength {
+							r = result[0].Line[0:userCfg.ResultLineLength]
 						} else {
 							r = result[0].Line[0:len(result[0].Line)]
 						}
