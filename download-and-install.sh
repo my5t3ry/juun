@@ -17,7 +17,7 @@ case $(uname -s) in
 esac
 
 if [ -z "${JUUNURL}" ]; then
-    JUUNURL=https://github.com/jackdoe/juun-bin-dist/raw/master/juun-latest-$os-$arch.tar.gz
+    JUUNURL=https://github.com/my5t3ry/juun-fzf/raw/master/juun-fzf-dist/juun-latest-$os-$arch.tar.gz
 fi
 
 clean_exit () {

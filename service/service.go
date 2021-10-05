@@ -28,8 +28,8 @@ func oneLine(history *History, c net.Conn) {
 		c.Close()
 		return
 	}
-	dataLen := binary.LittleEndian.Uint32(hdr)
 
+	dataLen := binary.LittleEndian.Uint32(hdr)
 	data := make([]byte, dataLen)
 	_, err = io.ReadFull(c, data)
 	if err != nil {
@@ -37,6 +37,7 @@ func oneLine(history *History, c net.Conn) {
 		c.Close()
 		return
 	}
+
 	ctrl := &Control{}
 	err = json.Unmarshal(data, ctrl)
 	if err != nil {
@@ -56,9 +57,8 @@ func oneLine(history *History, c net.Conn) {
 			}
 			history.gotoend()
 		}
-
 	case "end":
-		history.gotoend()
+		log.Infof("end command is deprecated")
 	case "reindex":
 		history.SelfReindex()
 	case "save":
@@ -87,15 +87,13 @@ func oneLine(history *History, c net.Conn) {
 		} else {
 			out = ""
 		}
-
 	case "up":
-		out = history.up(ctrl.Payload)
+		out = history.up()
 	case "down":
-		out = history.down(ctrl.Payload)
+		out = history.down()
 	}
 
 	_, _ = c.Write([]byte(out))
-
 	c.Close()
 }
 
@@ -133,9 +131,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	config := GetConfig()
 	history := NewHistory()
+	history.Load()
 
-	cntxt := &daemon.Context{
+	ctx := &daemon.Context{
 		PidFileName: pidFile,
 		PidFilePerm: 0600,
 		LogFileName: path.Join(home, ".juun.log"),
@@ -144,18 +144,16 @@ func main() {
 		Umask:       027,
 	}
 
-	d, err := cntxt.Reborn()
+	d, err := ctx.Reborn()
 	if err != nil {
 		log.Fatal("Unable to run: ", err)
 	}
 	if d != nil {
 		return
 	}
+
 	log.Infof("---------------------")
 	log.Infof("listening to: %s, model: %s", socketPath, modelFile)
-	history.Load()
-
-	config := GetConfig()
 
 	if config.AutoSaveIntervalSeconds < 30 {
 		log.Warnf("autosave interval is too short, limiting it to 30 seconds")
@@ -173,6 +171,7 @@ func main() {
 	if config.EnableVowpalWabbit {
 		vw = NewBandit(modelFile) // XXX: can be nil if vw is not found
 	}
+
 	history.vw = vw
 	_ = syscall.Unlink(socketPath)
 	sock, err := net.Listen("unix", socketPath)
@@ -182,21 +181,22 @@ func main() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	save := func() {
 		history.Save()
 	}
 
 	cleanup := func() {
-		log.Infof("closing")
-		sock.Close()
+		log.Infof("juun teardown")
 
 		save()
+		sock.Close()
+
 		_ = os.Chmod(modelFile, 0600)
 		if vw != nil {
 			vw.Shutdown()
 		}
-		_ = cntxt.Release()
-
+		_ = ctx.Release()
 		os.Exit(0)
 	}
 

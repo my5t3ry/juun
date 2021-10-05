@@ -49,24 +49,20 @@ func NewHistory() *History {
 	})
 
 	return &History{
-		Lines: make(map[string]*HistoryLine), // ordered list of commands
+		Lines: make(map[string]*HistoryLine),
 		idx:   m,
 	}
 }
 
 func (h *History) SelfReindex() {
 	log.Infof("starting reindexing")
-
 	h.SortedLines = h.flatMapLinesSorted()
-
 	log.Infof("reindexing done, %d items", len(h.Lines))
-
 }
 
 func (h *History) filterLine(f func(string) bool) []*HistoryLine {
 
 	lines := make([]*HistoryLine, 0, len(h.Lines))
-
 	for _, value := range h.Lines {
 		lines = append(lines, value)
 	}
@@ -83,7 +79,6 @@ func (h *History) filterLine(f func(string) bool) []*HistoryLine {
 func (h *History) flatMapLinesSorted() []*HistoryLine {
 
 	lines := make([]*HistoryLine, 0, len(h.Lines))
-
 	for _, value := range h.Lines {
 		lines = append(lines, value)
 	}
@@ -98,13 +93,12 @@ func (h *History) flatMapLinesSorted() []*HistoryLine {
 func (h *History) add(line string, env map[string]string) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-
 	now := time.Now().UnixNano()
+	v := &HistoryLine{}
 
 	filtered := h.filterLine(func(word string) bool {
 		return strings.Contains(word, line)
 	})
-	v := &HistoryLine{}
 	if len(filtered) > 0 {
 		v = filtered[0]
 		v.Count++
@@ -127,26 +121,23 @@ func (h *History) add(line string, env map[string]string) {
 		h.vw.Click(v.Id)
 		h.like(h.Lines[v.Uuid], env)
 	}
+
 	h.SelfReindex()
 }
 
 func (h *History) gotoend() {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-
 }
-func (h *History) up(buf string) string {
-	return h.move(true, buf)
-}
-
-func (h *History) down(buf string) string {
-	return h.move(false, buf)
+func (h *History) up() string {
+	return h.move(true)
 }
 
-func (h *History) getTerminal() *Terminal {
-	return nil
+func (h *History) down() string {
+	return h.move(false)
 }
-func (h *History) move(goUP bool, buf string) string {
+
+func (h *History) move(goUP bool) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -171,15 +162,11 @@ func (h *History) getLastLines() []*HistoryLine {
 	}
 
 	cfg := GetConfig()
+	if len(h.SortedLines) < cfg.SearchResults {
+		return h.SortedLines
+	}
 
 	return h.SortedLines[:cfg.SearchResults]
-}
-
-func reverseLines(input []*HistoryLine) []*HistoryLine {
-	if len(input) == 0 {
-		return input
-	}
-	return append(reverseLines(input[1:]), input[0])
 }
 
 type scored struct {
@@ -221,21 +208,19 @@ func (h *History) search(text string, env map[string]string) []*HistoryLine {
 
 	h.idx.Foreach(query, func(did int32, tfidf float32, doc index.Document) {
 		line := doc.(*HistoryLine)
+
 		ts := line.TimeStamp / 1000000000
 		timeScore := float32(-math.Sqrt(1 + float64(now-ts))) // -log(1+secondsDiff)
-
 		countScore := float32(math.Sqrt(float64(line.Count)))
 		terminalScore := float32(0)
-
 		total := (3 * tfidf) + (timeScore) + 0 + countScore
-		score = append(score, scored{uuid: line.Uuid, id: line.Id, score: total, tfidf: tfidf, timeScore: timeScore, terminalScore: terminalScore, countScore: countScore})
 
+		score = append(score, scored{uuid: line.Uuid, id: line.Id, score: total, tfidf: tfidf, timeScore: timeScore, terminalScore: terminalScore, countScore: countScore})
 	})
 
 	sort.Sort(ByScore(score))
 
 	if h.vw != nil {
-		// take the top 5 and sort them using vowpal wabbit's bootstrap
 		topN := 2
 		if topN > len(score) {
 			topN = len(score)
@@ -264,8 +249,7 @@ func (h *History) search(text string, env map[string]string) []*HistoryLine {
 		sort.Slice(score, func(i, j int) bool { return prediction[int(score[j].id)] < prediction[int(score[i].id)] })
 	}
 
-	// pick the first one
-	out := []*HistoryLine{}
+	var out []*HistoryLine
 	if len(score) > 0 {
 		for _, s := range score {
 			line := h.Lines[s.uuid]
@@ -276,6 +260,7 @@ func (h *History) search(text string, env map[string]string) []*HistoryLine {
 	if len(out) > cfg.SearchResults {
 		out = out[:cfg.SearchResults]
 	}
+
 	return out
 }
 
@@ -293,10 +278,13 @@ func (h *History) like(line *HistoryLine, env map[string]string) {
 
 func (h *History) Save() {
 	histfile := path.Join(GetHome(), ".juun.json")
+	log.Infof("---------------------")
+	log.Infof("saving %s", histfile)
 
 	h.lock.Lock()
 	d1, err := json.Marshal(h)
 	h.lock.Unlock()
+
 	if err == nil {
 		SafeSave(histfile, func(tmp string) error {
 			return ioutil.WriteFile(tmp, d1, 0600)
@@ -327,6 +315,5 @@ func (h *History) Load() {
 	}
 
 	h.SelfReindex()
-
 	h.idx.Index(toDocuments(h.SortedLines)...)
 }

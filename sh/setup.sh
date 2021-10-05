@@ -165,7 +165,7 @@ elif [[ -n "$ZSH_VERSION" ]]; then
   bindkey "^n" juun_down
 
   if [ -x "$(command -v fzf)" ]; then
-    source $ROOT/juun.fzf.sh
+    source "$ROOT"/juun.fzf.sh
   else
     bindkey "^R" juun_search_start
   fi

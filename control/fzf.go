@@ -38,5 +38,6 @@ func main() {
 		}
 		fmt.Printf("%s", strings.Join(Unique(r), "\n"))
 	}
+
 	os.Exit(0)
 }

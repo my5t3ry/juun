@@ -24,12 +24,7 @@ type HistoryLine struct {
 }
 
 func (l *HistoryLine) IndexableFields() map[string][]string {
-	out := map[string][]string{}
-
-	out["line"] = []string{l.Line}
-
-	return out
-
+	return map[string][]string{"line": {l.Line}}
 }
 
 func (l *HistoryLine) Featurize() *FeatureSet {
@@ -37,8 +32,8 @@ func (l *HistoryLine) Featurize() *FeatureSet {
 	for _, s := range strings.Split(l.Line, " ") {
 		features = append(features, NewFeature(s, 0))
 	}
-	text := NewNamespace("i_text", features...)
 
+	text := NewNamespace("i_text", features...)
 	count := NewNamespace("i_count", NewFeature("count", float32(math.Log(float64(1)+float64(l.Count)))))
 	t := TimeToNamespace("i_time", time.Unix(l.TimeStamp/1000000000, 0))
 	id := NewNamespace("i_id", NewFeature(fmt.Sprintf("id=%d", l.Id), float32(0)))
@@ -56,6 +51,7 @@ func QueryService(cmd string, spid string, line string) string {
 			"cwd": GetCWD(),
 		},
 	}
+
 	home := GetHome()
 	data, err := json.Marshal(ctrl)
 	if err != nil {
@@ -71,7 +67,6 @@ func QueryService(cmd string, spid string, line string) string {
 
 	header := make([]byte, 4)
 	binary.LittleEndian.PutUint32(header, uint32(len(data)))
-
 	_, err = c.Write(header)
 	if err != nil {
 		log.Fatal("Write error:", err)
@@ -81,6 +76,7 @@ func QueryService(cmd string, spid string, line string) string {
 	if err != nil {
 		log.Fatal("Write error:", err)
 	}
+
 	buf, _ := ioutil.ReadAll(c)
 	return string(buf)
 }
@@ -104,8 +100,8 @@ func UserContext(query string, cwd string) *FeatureSet {
 			features = append(features, NewFeature(s, 0))
 		}
 	}
-	qns := NewNamespace("c_query", features...)
 
+	qns := NewNamespace("c_query", features...)
 	fs := NewFeatureSet(TimeToNamespace("c_user_time", time.Now()), qns)
 	if cwd != "" {
 		splitted := strings.Split(cwd, "/")
