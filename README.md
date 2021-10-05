@@ -3,11 +3,11 @@
 #### + smacked on fzf integration and compdef support
 
 
-![logo](https://github.com/jackdoe/juun/raw/master/logo-small.png)
+![logo](https://raw.githubusercontent.com/my5t3ry/juun-fzf/master/logo-small_ls.png)
 
 ## learn damnit
 
-[comment]: <> (![video]&#40;https://github.com/jackdoe/juun/raw/master/learn.gif&#41;)
+![video](https://raw.githubusercontent.com/my5t3ry/juun-fzf/master/learn.gif)
 
 [comment]: <> (in this example the search learns that by 'd' I mean `git diff`, not `dmesg`)
 
